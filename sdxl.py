@@ -1,6 +1,4 @@
-import base64
 import io
-import uuid
 from pathlib import Path
 from PIL import Image
 import torch
@@ -49,7 +47,6 @@ def stable_diffusion_handler(payload, send_chunk):
     n = payload.get("n", 1)
     width = payload.get("width", 1024)
     height = payload.get("height", 1024)
-    response_format = payload.get("response_format", "b64_json")
 
     result = pipe(
         prompt,
@@ -61,25 +58,15 @@ def stable_diffusion_handler(payload, send_chunk):
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     for image in result.images:
-        image_data = {}
-        if response_format == "b64_json":
-            buffered = io.BytesIO()
-            image.save(buffered, format="PNG")
-            b64_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            image_data["b64_json"] = b64_data
-        else:
-            filename = f"{uuid.uuid4()}.png"
-            file_path = output_dir / filename
-            image.save(file_path)
-            image_data["url"] = str(file_path)
-        send_chunk(image_data)
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        send_chunk({"png": buffered.getvalue()})
 
 def stable_diffusion_edit_handler(payload, send_chunk):
     prompt = payload["prompt"]
     n = payload.get("n", 1)
     width = payload.get("width", 1024)
     height = payload.get("height", 1024)
-    response_format = payload.get("response_format", "b64_json")
     image_bytes = payload.get("image")
     mask_bytes = payload.get("mask")
 
@@ -103,18 +90,9 @@ def stable_diffusion_edit_handler(payload, send_chunk):
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     for image in result.images:
-        image_data = {}
-        if response_format == "b64_json":
-            buffered = io.BytesIO()
-            image.save(buffered, format="PNG")
-            b64_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            image_data["b64_json"] = b64_data
-        else:
-            filename = f"{uuid.uuid4()}.png"
-            file_path = output_dir / filename
-            image.save(file_path)
-            image_data["url"] = str(file_path)
-        send_chunk(image_data)
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        send_chunk({"png": buffered.getvalue()})
 
 if __name__ == "__main__":
     hfendpoint.run({
